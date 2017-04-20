@@ -30,6 +30,9 @@ int main(){
         perror("Master socket creation error");
     }
 
+    // clear address memory
+    bzero(&address, sizeof(address));
+
     // set socket type
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
