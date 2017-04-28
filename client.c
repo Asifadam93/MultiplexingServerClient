@@ -10,6 +10,8 @@ int main(void)
 	int socketFd;
  	struct sockaddr_in clientAddr;
  	char ch;
+	char saisie[255];
+	char buffer[1025];
 
  	// socket creation
  	//fd : file descripteur
@@ -25,13 +27,16 @@ int main(void)
  	clientAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
  	clientAddr.sin_port = htons(8087);
 
- 	if(connect(socketFd, (struct sockaddr *) &clientAddr, 
- 		sizeof(clientAddr)) < 0){
+ 	if(connect(socketFd, (struct sockaddr *) &clientAddr, sizeof(clientAddr)) < 0) {
  		printf("Error connect\n");
  	} else {
- 		write(socketFd,"Test", 4);
- 		//read(socketFd,&ch,1);
- 		//printf("%c\n", ch);
+ 		while(1) {
+
+			fgets(saisie, 4, stdin);
+	 		write(socketFd,saisie, 4);
+	 		//read(socketFd,&ch,1);
+	 		//printf("%c\n", ch);
+ 		}
  	}
 
 
