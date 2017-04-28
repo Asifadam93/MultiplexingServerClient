@@ -14,17 +14,17 @@
 
 int main(){
 
-	int maxClients = 3, clientSocket[3], masterSocket, newSocket, sd, maxSd, activity, addressLength, valRead;
+  int maxClients = 3, clientSocket[3], masterSocket, newSocket, sd, maxSd, activity, addressLength, valRead;
     char buffer[1025];
     struct sockaddr_in address;
     int fdsAdded = 0;
 
     fd_set readfds;
-	
-	// init all client to 0
-	for(int i=0; i<maxClients; i++){
-		clientSocket[i] = 0;
-	}
+  
+  // init all client to 0
+  for(int i=0; i<maxClients; i++){
+    clientSocket[i] = 0;
+  }
 
 
     // create master socket en ipv4 (af_inet) et en TCP (SOCK_STREAM) 
@@ -61,48 +61,52 @@ int main(){
 
         // clear readfds socket set
         FD_ZERO(&readfds);
-        maxSd = masterSocket;
 
         // add master socket to readfds socket set
         FD_SET(masterSocket, &readfds);
-
+        maxSd = masterSocket;
 
         // add child socket to readfds set
         for(int i=0; i<maxClients; i++){
+
+            // sd : socket descriptor
             sd = clientSocket[i];
 
+            // add to read, if it's a valid socket descriptor
             if(sd > 0){
                 FD_SET(sd, &readfds);
             }
 
-            //TODO : comprendre, voir le man du select
+            // highest socket descriptor, for select function
             if(sd > maxSd){
                 maxSd = sd;
             }
         }
 
 
-
-        /*
-         * PARTIE QUI PERMET D'AJOUTER UN NOUVEAU FD A LIRE
-         */
+        // Wait for activity on sockets
         activity = select(maxSd+1, &readfds, NULL, NULL, NULL);
 
-        // Si on a une demande de connexion sur notre serveur
+        if(activity < 0){
+            perror("\033[1;31mError : \033[1m select \n");
+        }
+
+        // If any activity detected on masterSocket
         if(FD_ISSET(masterSocket, &readfds)){
 
-            //récupération de la socket entrante
+            //Accept the connection
             if((newSocket = accept(masterSocket, (struct sockaddr *)&address, ((socklen_t*)&addressLength))) < 0){
                 perror("\033[1;31mError : \033[1m accept \n");
             }
 
-            //affichage du fd du socket entrant
+            //show client fd
             printf("\033[1;32mNew connection - socket fd : \033[0m %d \n", newSocket);
         
-            //on ajoute le nouveau socket
+            //add new socket to clientSocket array
             fdsAdded = -1;
             for(int i = 0; i<maxClients; i++){
 
+                // add if clientSocket is empty
                 if(clientSocket[i] == 0){
                     fdsAdded = i;
                     clientSocket[i] = newSocket;
@@ -110,7 +114,7 @@ int main(){
                 }
             }
 
-            //affichage du socket ajouté ou pas (si erreur)
+            //Show socket added state
             if (fdsAdded>= 0) {
                 printf("\033[1;32mSocket added : \033[0m %d \n", fdsAdded);
             } else {
@@ -119,9 +123,7 @@ int main(){
 
         }
 
-        /*
-         * PARTIE QUI PERMET DE LIRE LES FD DES CLIENTS
-         */
+        // Other socket operations
         for (int i = 0; i < maxClients; i++){
             
             sd = clientSocket[i];
@@ -129,7 +131,11 @@ int main(){
 
             if(FD_ISSET(sd, &readfds)){
 
-                if((valRead = read(sd, buffer, 1024)) == 0){
+                // read incomming msg
+                valRead = read(sd, buffer, 1024);
+
+                // check if it for cloasing
+                if(valRead == 0){
 
                     printf("Someone disconnected\n");
 
@@ -137,7 +143,7 @@ int main(){
                     clientSocket[i] = 0;
 
                 } else {
-
+                    // get received msg
                     for (int i = 0; i < valRead; ++i)
                     {
                         printf("%c", buffer[i]);
@@ -150,5 +156,7 @@ int main(){
         }
 
     }
+
+    return 0;
 
 }
