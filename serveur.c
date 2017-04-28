@@ -125,8 +125,7 @@ int main(){
         for (int i = 0; i < maxClients; i++){
             
             sd = clientSocket[i];
-            
-            FD_ZERO(&sd);
+
 
             if(FD_ISSET(sd, &readfds)){
 
