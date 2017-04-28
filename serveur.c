@@ -14,17 +14,17 @@
 
 int main(){
 
-  int maxClients = 3, clientSocket[3], masterSocket, newSocket, sd, maxSd, activity, addressLength, valRead;
+    int maxClients = 3, clientSocket[3], masterSocket, newSocket, sd, maxSd, activity, addressLength, valRead;
     char buffer[1025];
     struct sockaddr_in address;
     int fdsAdded = 0;
 
     fd_set readfds;
   
-  // init all client to 0
-  for(int i=0; i<maxClients; i++){
-    clientSocket[i] = 0;
-  }
+    // init all client to 0
+    for(int i=0; i<maxClients; i++){
+      clientSocket[i] = 0;
+    }
 
 
     // create master socket en ipv4 (af_inet) et en TCP (SOCK_STREAM) 
