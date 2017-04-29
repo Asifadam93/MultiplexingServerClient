@@ -10,14 +10,16 @@
 #include <netinet/in.h>
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
-#define PORT 8087 //8087 parceque Asif :)
+#define PORT 7777 //8087 parceque Asif :)
 
 int main(){
 
-	int maxClients = 3, clientSocket[3], masterSocket, newSocket, sd, maxSd, activity, addressLength, valRead;
-    char buffer[1025];
+	int maxClients = 2, clientSocket[3], masterSocket, newSocket, sd, maxSd, activity, addressLength, nbChar;
+    char buffer[255];
+    char bufferRetour[255];
     struct sockaddr_in address;
     int fdsAdded = 0;
+    int retourClientAFaire = 0;
 
     fd_set readfds;
 	
@@ -48,7 +50,7 @@ int main(){
     }
 
     // listen max 3 pending connections
-    if(listen(masterSocket, maxClients) < 0){
+    if(listen(masterSocket, 4) < 0){
         perror("\033[1;31mlisten error \033[1m");
         exit(EXIT_FAILURE);
     }
@@ -129,23 +131,32 @@ int main(){
 
             if(FD_ISSET(sd, &readfds)){
 
-                if((valRead = read(sd, buffer, 1024)) == 0){
+                if((nbChar = read(sd, buffer, 1024)) == 0){
 
-                    printf("Someone disconnected\n");
+                    printf("\033[1;31mSomeone disconnected !\033[0m \n");
 
                     close(sd);
                     clientSocket[i] = 0;
 
                 } else {
 
-                    for (int i = 0; i < valRead; ++i)
+                    for (int i = 0; i < nbChar; ++i)
                     {
                         printf("%c", buffer[i]);
                     }
-                    printf("\n");
                 }
 
+                printf("nbChar = %i\n", nbChar);
             }
+
+            /*if (retourClientAFaire == 1) {
+                printf("TEST");
+                strcpy(bufferRetour, "Message bien Recu");
+                write(sd,bufferRetour,17);
+
+                retourClientAFaire = 0;
+            }*/
+
 
         }
 
