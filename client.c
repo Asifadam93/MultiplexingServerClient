@@ -31,19 +31,26 @@ int main(void)
  	clientAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
  	clientAddr.sin_port = htons(PORT);
 
-	printf("\033[1;37m");
 
  	if(connect(socketFd, (struct sockaddr *) &clientAddr, sizeof(clientAddr)) < 0) {
  		printf("Error connect\n");
  	} else {
  		while(1) {
 
-
-
 			fgets(saisie, sizeof(saisie), stdin);
 	 		write(socketFd,saisie, strlen(saisie));
+
 			
-			//printf("%zu\n",strlen(saisie));  //DEBUG
+			printf("%zu\n",strlen(saisie));  //DEBUG
+
+
+			nbChar = read(socketFd, &buffer, sizeof(buffer));
+            for (int i = 0; i < nbChar; ++i)
+            {
+                printf("\033[0;36m%c\033[0m", buffer[i]);
+            }
+            printf("\n");
+
 		}
 
 
