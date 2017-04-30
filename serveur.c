@@ -10,19 +10,29 @@
 #include <netinet/in.h>
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
-#define PORT 7777 //8087 parceque Asif :)
+#define PORT 8087 //8087 parceque Asif :)
 
 int main(){
 
-	int maxClients = 2, clientSocket[3], masterSocket, newSocket, sd, maxSd, activity, addressLength, nbChar;
+	int maxClients = 2, 
+        clientSocket[maxClients], 
+        masterSocket, 
+        newSocket, 
+        sd, 
+        maxSd, 
+        activity, 
+        addressLength, 
+        nbChar,
+        fdsAdded = 0,
+        usersCount = 0;
     char buffer[255];
     char bufferRetour[255];
-    struct sockaddr_in address;
-    int fdsAdded = 0;
-    int retourClientAFaire = 0;
 
+    struct sockaddr_in address;
     fd_set readfds;
-  
+    const char usersNick[maxClients][20];
+
+
     // init all client to 0
     for(int i=0; i<maxClients; i++){
       clientSocket[i] = 0;
@@ -102,7 +112,7 @@ int main(){
             }
 
             //show client fd
-            printf("\033[1;32mNew connection - socket fd : \033[0m %d \n", newSocket);
+            printf("\033[1;32mNew connection asked - socket fd : \033[0m %d \n", newSocket);
         
             //add new socket to clientSocket array
             fdsAdded = -1;
@@ -111,6 +121,13 @@ int main(){
                 // add if clientSocket is empty
                 if(clientSocket[i] == 0){
                     fdsAdded = i;
+
+                    usersCount++;
+
+                    char str[20];
+                    sprintf((char*) usersNick[i], "User_%d", usersCount); 
+                     //cast pour éviter un warning. TODO : voir différence entre char* et const char *
+
                     clientSocket[i] = newSocket;
                     break;
                 }
@@ -118,17 +135,16 @@ int main(){
 
             //Show socket added state
             if (fdsAdded>= 0) {
-                printf("\033[1;32mSocket added : \033[0m %d \n", fdsAdded);
+                printf("\033[1;32m  -> Added \033[0m \033[1;37m%s\033[0m\n", usersNick[fdsAdded] );
             } else {
-                printf("\033[1;31mCan't add more socket !\033[0m \n");
+                printf("\033[1;31m  -> Error : Can't add more socket !\033[0m \n");
             }
 
         }
 
-
         // Other socket operations
         for (int i = 0; i < maxClients; i++){
-            
+            //récupération du  
             sd = clientSocket[i];
 
 
@@ -137,25 +153,31 @@ int main(){
                 // read incomming msg
                 if((nbChar = read(sd, buffer, 1024)) == 0){
 
-                    printf("\033[1;31mSomeone disconnected !\033[0m \n");
+                    printf("\033[1;31m%s disconnected !\033[0m \n", usersNick[i] );
 
                     close(sd);
                     clientSocket[i] = 0;
 
                 } else {
-                    //write(stdout,buffer,nbChar);
-                    printf("From %i (%i caractères) : %s\n", sd, nbChar, buffer);
-                    //fputs(buffer, stdout);               //permet d'éviter une boucle read pour lire le buffer
-                    //memset(buffer, 0,sizeof(buffer));  //on vide le buffer pour ne pas relire plusieurs fois la même chose
 
-                    // pour le transfert aux autres clients (pour le moment, à éviter tant que le client n'a pas un fd_set)
+                    strcpy(bufferRetour, usersNick[i]);
+
+                    strcat(bufferRetour, " : ");
+                    strcat(bufferRetour, buffer);
+                    printf("%s", bufferRetour);
+
+                    // pour le transfert aux autres clients
                     for (int r = 0; r < maxClients; r++){
                         //printf("r: %i, i: %i\n", r, i);   //DEBUG
-                        if (r != i) {
-                            write(clientSocket[r],buffer,nbChar);
+                        if ((r != i) && (clientSocket[r] > 0))  {
+
+                            write(clientSocket[r],bufferRetour,strlen(bufferRetour));
+
                         }
                     }
+
                     memset(buffer, 0,sizeof(buffer));
+                    memset(buffer, 0,sizeof(bufferRetour));
                 }
 
 

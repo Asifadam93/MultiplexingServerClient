@@ -5,7 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define PORT 7777
+#define PORT 8087
 
 int main(void)
 {
@@ -18,6 +18,7 @@ int main(void)
  	fd_set readfds;	//EXPERIMENTAL
  	int maxFd;
  	int activity;
+
 
  	// socket creation
  	//fd : file descripteur
@@ -78,18 +79,16 @@ int main(void)
 	            //printf("Le serveur a envoyé quelque chose : ");
 
 				if((nbChar = read(socketFd, buffer, 1024)) == 0){
-                    printf("\033[1;31mError !\033[0m");
+                    printf("\033[1;31mError ! \033[0m");
                 } else {
 
-					printf("\033[0;36m%s\033[0m \n", buffer);
+					printf("\033[0;37m%s\033[0m", buffer);
 
                     memset(buffer, 0,sizeof(buffer));
                 }
 	        }
 
 
-
- 			//FIN EXPERIMENTAL
 
 	        /*
 
