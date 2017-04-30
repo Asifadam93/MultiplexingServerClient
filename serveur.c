@@ -125,6 +125,7 @@ int main(){
 
         }
 
+
         // Other socket operations
         for (int i = 0; i < maxClients; i++){
             
@@ -142,16 +143,24 @@ int main(){
                     clientSocket[i] = 0;
 
                 } else {
-                    for (int i = 0; i < nbChar; ++i)
-                    {
-                        printf("%c", buffer[i]);
+                    //write(stdout,buffer,nbChar);
+                    printf("From %i (%i caractères) : %s\n", sd, nbChar, buffer);
+                    //fputs(buffer, stdout);               //permet d'éviter une boucle read pour lire le buffer
+                    //memset(buffer, 0,sizeof(buffer));  //on vide le buffer pour ne pas relire plusieurs fois la même chose
+
+                    // pour le transfert aux autres clients (pour le moment, à éviter tant que le client n'a pas un fd_set)
+                    for (int r = 0; r < maxClients; r++){
+                        //printf("r: %i, i: %i\n", r, i);   //DEBUG
+                        if (r != i) {
+                            write(clientSocket[r],buffer,nbChar);
+                        }
                     }
+                    memset(buffer, 0,sizeof(buffer));
                 }
 
-                printf("nbChar = %i\n", nbChar);
 
-                strcpy(bufferRetour, "Message bien Recu");
-                write(sd,bufferRetour,17);
+                //strcpy(bufferRetour, "Message bien Recu");
+                //write(sd,bufferRetour,strlen(bufferRetour));
             }
         }
 
