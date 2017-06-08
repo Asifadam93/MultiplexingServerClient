@@ -10,7 +10,28 @@
 #include <netinet/in.h>
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
-#define PORT 8087 //8087 parceque Asif :)
+#define PORT 8001 //8087 parceque Asif :)
+
+/**
+ * Fonction permettant de savoir si l'utilisateur a saisi une commande irc
+ *
+ */
+int searchCommandIRC(char* chaine, char* needle)
+{
+    char *c = strstr(chaine, needle);
+    int position = c -chaine;
+
+    if ((c != NULL) && (position >= 0)) {
+        printf("\033[0;36mFound command %s\033[0m\n", needle);
+        return 1;
+    }
+
+
+    return 0;
+}
+
+
+
 
 int main(){
 
@@ -136,6 +157,8 @@ int main(){
             //Show socket added state
             if (fdsAdded>= 0) {
                 printf("\033[1;32m  -> Added \033[0m \033[1;37m%s\033[0m\n", usersNick[fdsAdded] );
+
+
             } else {
                 printf("\033[1;31m  -> Error : Can't add more socket !\033[0m \n");
             }
@@ -159,20 +182,28 @@ int main(){
                     clientSocket[i] = 0;
 
                 } else {
+                    //Recherche des commandes IRC
+                    if (searchCommandIRC(buffer, "NICK") == 1) {
 
+                    }
+                    //Recherche des commandes IRC
+                    if (searchCommandIRC(buffer, "USER") == 1) {
+
+                    }
+
+                    // Transfert aux autres clients
+                    /*
+                    suppression pour cause de test avec un client IRC
                     strcpy(bufferRetour, usersNick[i]);
-
                     strcat(bufferRetour, " : ");
                     strcat(bufferRetour, buffer);
                     printf("%s", bufferRetour);
+                    */
 
-                    // pour le transfert aux autres clients
+                    printf("%s", buffer);
                     for (int r = 0; r < maxClients; r++){
-                        //printf("r: %i, i: %i\n", r, i);   //DEBUG
                         if ((r != i) && (clientSocket[r] > 0))  {
-
-                            write(clientSocket[r],bufferRetour,strlen(bufferRetour));
-
+                            write(clientSocket[r],buffer,strlen(buffer));
                         }
                     }
 
@@ -191,3 +222,8 @@ int main(){
     return 0;
 
 }
+
+
+
+
+

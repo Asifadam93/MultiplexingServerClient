@@ -5,7 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define PORT 8087
+#define PORT 8001
 
 int main(void)
 {
@@ -31,6 +31,7 @@ int main(void)
  	bzero(&clientAddr, sizeof(clientAddr));
 
  	clientAddr.sin_family = AF_INET;
+ 	//clientAddr.sin_addr.s_addr = inet_addr("195.148.124.79");
  	clientAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
  	clientAddr.sin_port = htons(PORT);
 
@@ -40,7 +41,7 @@ int main(void)
  		while(1) {
 
 			maxFd = (socketFd > STDIN_FILENO)?socketFd:STDIN_FILENO;
- 			//DEBUT EXPERIMENTAL
+
 	        // clear readfds socket set
 	        FD_ZERO(&readfds);
 
@@ -62,7 +63,7 @@ int main(void)
 	           // printf("L'utilisateur a saisi quelque chose : ");	//DEBUG
 
 				if((nbChar = read(STDIN_FILENO, buffer, 1024)) == 0){
-                    printf("\033[1;31mError !\033[0m \n");
+                    perror("\033[1;31mError : \033[0m STDIN_FILENO\n");
                 } else {
                     //fputs(buffer, stdout);               //DEBUG
                     
@@ -79,7 +80,7 @@ int main(void)
 	            //printf("Le serveur a envoyé quelque chose : ");
 
 				if((nbChar = read(socketFd, buffer, 1024)) == 0){
-                    printf("\033[1;31mError ! \033[0m");
+                    perror("\033[1;31mError : \033[0m socket serveur");
                 } else {
 
 					printf("\033[0;37m%s\033[0m", buffer);
@@ -87,27 +88,6 @@ int main(void)
                     memset(buffer, 0,sizeof(buffer));
                 }
 	        }
-
-
-
-	        /*
-
-
-			fgets(saisie, sizeof(saisie), stdin);
-	 		write(socketFd,saisie, strlen(saisie));
-
-			
-			//printf("%zu\n",strlen(saisie));  //DEBUG
-
-
-			nbChar = read(socketFd, &buffer, sizeof(buffer));
-            for (int i = 0; i < nbChar; ++i)
-            {
-                printf("\033[0;36m%c\033[0m", buffer[i]);
-            }
-            printf("\n");
-            */
-
 		}
 
 
