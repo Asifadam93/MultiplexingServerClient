@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>   //strlen
 #include <stdlib.h>
@@ -10,11 +9,92 @@
 #include <netinet/in.h>
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
-#define PORT 8087 //8087 parceque Asif :)
+#define PORT 7777 //8087 parceque Asif :)
+
+//https://stackoverflow.com/questions/3796479/how-to-remove-a-carriage-return-from-a-string-in-c
+void remove_char_from_string(char *str)
+{
+    int i=0;
+    int len = strlen(str)+1;
+
+    for(i=0; i<len; i++)
+    {
+        printf("%i:%c", (int) str[i], str[i]);
+        if (str[i] == '\n')
+        {
+
+            // Move all the char following the char "c" by one to the left.
+            strncpy(&str[i],&str[i+1],len-i);
+        }
+    }
+}
 
 /**
- * Fonction permettant de savoir si l'utilisateur a saisi une commande irc
+ * Fonction permettant de récupérer le nickname de la commande : NICK
  *
+ * @param chaine
+ * @param nick
+ * @return
+ */
+int getNick(char* chaine, char* nick) {
+
+    char *mot = strtok(chaine, " ");
+
+    int i = 0;
+    int firstCommandOk = 0;
+    int isNick = 0;
+
+    while (mot) {
+        //si la première commande est un NICK sans espace avant ou autre, c'est bon
+        if (strcmp(mot, "NICK") == 0) {
+            firstCommandOk = 1;
+        }
+        //on set le nick,
+        if ((i == 1) && (firstCommandOk == 1)){
+            remove_char_from_string(mot);
+            strcpy(nick, mot);
+            isNick = 1;
+        }
+        i++;
+        //printf("%2d %s\n", i++, mot);
+        mot = strtok(NULL, " ");
+    }
+    return isNick;
+}
+/**
+ * Fonction permettant de récupérer le nickname de la commande : USER
+ * @param chaine
+ * @param username
+ * @return
+ */
+int getUserName(char* chaine, char* username) {
+
+    char *mot = strtok(chaine, " ");
+
+    int i = 0;
+    int firstCommandOk = 0;
+    int isUserName = 0;
+
+    while (mot) {
+        //si la première commande est un USER sans espace avant ou autre, c'est bon
+        if (strcmp(mot, "USER") == 0) {
+            firstCommandOk = 1;
+        }
+        //on set le nick,
+        if ((i == 1) && (firstCommandOk == 1)){
+            strcpy(username, mot);
+            remove_char_from_string(username);
+            isUserName = 1;
+        }
+        i++;
+        mot = strtok(NULL, " ");
+    }
+    return isUserName;
+}
+
+
+/**
+ * Fonction permettant de savoir si un client a saisi une commande irc
  */
 int searchCommandIRC(char* chaine, char* needle)
 {
@@ -25,7 +105,6 @@ int searchCommandIRC(char* chaine, char* needle)
         printf("\033[0;36mFound command %s\033[0m\n", needle);
         return 1;
     }
-
     return 0;
 }
 
@@ -34,14 +113,14 @@ int searchCommandIRC(char* chaine, char* needle)
 
 int main(){
 
-	int maxClients = 2, 
-        clientSocket[maxClients], 
-        masterSocket, 
-        newSocket, 
-        sd, 
-        maxSd, 
-        activity, 
-        addressLength, 
+	int maxClients = 2,
+        clientSocket[maxClients],
+        masterSocket,
+        newSocket,
+        sd,
+        maxSd,
+        activity,
+        addressLength,
         nbChar,
         fdsAdded = 0,
         usersCount = 0;
@@ -50,7 +129,8 @@ int main(){
 
     struct sockaddr_in address;
     fd_set readfds;
-    const char usersNick[maxClients][20];
+    char usersNick[maxClients][20];
+    char usersName[maxClients][100];
 
 
     // init all client to 0
@@ -59,7 +139,7 @@ int main(){
     }
 
 
-    // create master socket en ipv4 (af_inet) et en TCP (SOCK_STREAM) 
+    // create master socket en ipv4 (af_inet) et en TCP (SOCK_STREAM)
     if((masterSocket = socket(AF_INET, SOCK_STREAM, 0)) == 0){
         perror("\033[1;31mMaster socket creation error \033[0m");
         exit(EXIT_FAILURE);
@@ -68,7 +148,7 @@ int main(){
     // clear address memory
     bzero(&address, sizeof(address));
 
-    // configuration du socket adress (AF_INET : ipv4, INADDR_ANY : toute les interfaces) 
+    // configuration du socket adress (AF_INET : ipv4, INADDR_ANY : toute les interfaces)
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
@@ -133,7 +213,7 @@ int main(){
 
             //show client fd
             printf("\033[1;32mNew connection asked - socket fd : \033[0m %d \n", newSocket);
-        
+
             //add new socket to clientSocket array
             fdsAdded = -1;
             for(int i = 0; i<maxClients; i++){
@@ -145,7 +225,9 @@ int main(){
                     usersCount++;
 
                     char str[20];
-                    sprintf((char*) usersNick[i], "User_%d", usersCount); 
+                    sprintf((char*) usersNick[i], "User_%d", usersCount);
+                    sprintf((char*) usersName[i], "User_%d", usersCount);
+
                      //cast pour éviter un warning. TODO : voir différence entre char* et const char *
 
                     clientSocket[i] = newSocket;
@@ -166,7 +248,7 @@ int main(){
 
         // Other socket operations
         for (int i = 0; i < maxClients; i++){
-            //récupération du  
+            //récupération du
             sd = clientSocket[i];
 
 
@@ -175,18 +257,35 @@ int main(){
                 // read incomming msg
                 if((nbChar = read(sd, buffer, 1024)) == 0){
 
-                    printf("\033[1;31m%s disconnected !\033[0m \n", usersNick[i] );
+                    printf("\033[1;31m%s disconnected !\033[0m", usersNick[i] );
 
                     close(sd);
                     clientSocket[i] = 0;
 
                 } else {
+                    printf("\033[1;33mRéception de la commande : \033[0m %s", buffer );
+
                     //Recherche des commandes IRC
                     if (searchCommandIRC(buffer, "NICK") == 1) {
+                        char nick[20];
+
+                        getNick(buffer, nick);
+
+                        printf("L'utilisateur %s devient : -%s-", usersNick[i], nick);
+                        
+                        sprintf((char*) usersNick[i], nick);
 
                     }
                     //Recherche des commandes IRC
-                    if (searchCommandIRC(buffer, "USER") == 1) {
+                    else if (searchCommandIRC(buffer, "USER") == 1) {
+                        char userName[100];
+                        getUserName(buffer, userName);
+
+                        printf("L'utilisateur %s- devient : %s", usersNick[i], userName);
+                        sprintf((char*) usersName[i], userName, usersCount);
+                    }
+                    //cas non gérés pour le moment
+                    else {
 
                     }
 
@@ -199,7 +298,7 @@ int main(){
                     printf("%s", bufferRetour);
                     */
 
-                    printf("%s", buffer);
+
                     for (int r = 0; r < maxClients; r++){
                         if ((r != i) && (clientSocket[r] > 0))  {
                             write(clientSocket[r],buffer,strlen(buffer));
@@ -221,8 +320,3 @@ int main(){
     return 0;
 
 }
-
-
-
-
-
