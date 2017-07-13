@@ -10,7 +10,7 @@
 #include <netinet/in.h>
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
-#define PORT 8001 //8087 parceque Asif :)
+#define PORT 8087 //8087 parceque Asif :)
 
 /**
  * Fonction permettant de savoir si l'utilisateur a saisi une commande irc
@@ -19,13 +19,12 @@
 int searchCommandIRC(char* chaine, char* needle)
 {
     char *c = strstr(chaine, needle);
-    int position = c -chaine;
+    int position = c - chaine;
 
     if ((c != NULL) && (position >= 0)) {
         printf("\033[0;36mFound command %s\033[0m\n", needle);
         return 1;
     }
-
 
     return 0;
 }
