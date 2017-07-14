@@ -9,25 +9,8 @@
 #include <netinet/in.h>
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
-#define PORT 7777 //8087 parceque Asif :)
+#define PORT 8087 //8087 parceque Asif :)
 
-//https://stackoverflow.com/questions/3796479/how-to-remove-a-carriage-return-from-a-string-in-c
-void remove_char_from_string(char *str)
-{
-    int i=0;
-    int len = strlen(str)+1;
-
-    for(i=0; i<len; i++)
-    {
-        printf("%i:%c", (int) str[i], str[i]);
-        if (str[i] == '\n')
-        {
-
-            // Move all the char following the char "c" by one to the left.
-            strncpy(&str[i],&str[i+1],len-i);
-        }
-    }
-}
 
 /**
  * Fonction permettant de récupérer le nickname de la commande : NICK
@@ -51,7 +34,6 @@ int getNick(char* chaine, char* nick) {
         }
         //on set le nick,
         if ((i == 1) && (firstCommandOk == 1)){
-            remove_char_from_string(mot);
             strcpy(nick, mot);
             isNick = 1;
         }
@@ -82,8 +64,8 @@ int getUserName(char* chaine, char* username) {
         }
         //on set le nick,
         if ((i == 1) && (firstCommandOk == 1)){
+            //printf("===%s===", mot);
             strcpy(username, mot);
-            remove_char_from_string(username);
             isUserName = 1;
         }
         i++;
@@ -102,7 +84,7 @@ int searchCommandIRC(char* chaine, char* needle)
     int position = c - chaine;
 
     if ((c != NULL) && (position >= 0)) {
-        printf("\033[0;36mFound command %s\033[0m\n", needle);
+        //printf("\033[0;36mFound command %s\033[0m\n", needle);
         return 1;
     }
     return 0;
@@ -123,7 +105,8 @@ int main(){
         addressLength,
         nbChar,
         fdsAdded = 0,
-        usersCount = 0;
+        usersCount = 0,
+        toWelcome = -1;
     char buffer[255];
     char bufferRetour[255];
 
@@ -132,6 +115,10 @@ int main(){
     char usersNick[maxClients][20];
     char usersName[maxClients][100];
 
+
+    struct timeval tempo;
+    tempo.tv_sec = 1;
+    tempo.tv_usec = 0;
 
     // init all client to 0
     for(int i=0; i<maxClients; i++){
@@ -171,6 +158,8 @@ int main(){
 
     while(1){
 
+
+
         // clear readfds socket set
         FD_ZERO(&readfds);
 
@@ -197,7 +186,7 @@ int main(){
 
 
         // Wait for activity on sockets
-        activity = select(maxSd+1, &readfds, NULL, NULL, NULL);
+        activity = select(maxSd+1, &readfds, NULL, NULL, &tempo);
 
         if(activity < 0){
             perror("\033[1;31mError : \033[1m select \n");
@@ -228,7 +217,7 @@ int main(){
                     sprintf((char*) usersNick[i], "User_%d", usersCount);
                     sprintf((char*) usersName[i], "User_%d", usersCount);
 
-                     //cast pour éviter un warning. TODO : voir différence entre char* et const char *
+                     //cast pour éviter un warning.
 
                     clientSocket[i] = newSocket;
                     break;
@@ -243,7 +232,6 @@ int main(){
             } else {
                 printf("\033[1;31m  -> Error : Can't add more socket !\033[0m \n");
             }
-
         }
 
         // Other socket operations
@@ -271,9 +259,9 @@ int main(){
 
                         getNick(buffer, nick);
 
-                        printf("L'utilisateur %s devient : -%s-", usersNick[i], nick);
-                        
-                        sprintf((char*) usersNick[i], nick);
+                        //printf("L'utilisateur %s devient : -%s-", usersNick[i], nick);
+
+                        sprintf((char*) usersNick[i],"%s", nick);
 
                     }
                     //Recherche des commandes IRC
@@ -281,8 +269,28 @@ int main(){
                         char userName[100];
                         getUserName(buffer, userName);
 
-                        printf("L'utilisateur %s- devient : %s", usersNick[i], userName);
-                        sprintf((char*) usersName[i], userName, usersCount);
+                        //printf("L'utilisateur %s- devient : %s", usersNick[i], userName);
+                        sprintf((char*) usersNick[i],"%s", userName);
+
+
+
+
+
+
+
+                        //test écriture
+
+                        strcpy(bufferRetour, ":localhost 001 fabien :Welcome to the Groupe 10 4AMOC1 ESGI 2016-2017 Internet Relay Chat Network fabien");
+                        write(clientSocket[i],bufferRetour,strlen(bufferRetour));
+
+
+
+
+
+
+
+
+
                     }
                     //cas non gérés pour le moment
                     else {
@@ -290,6 +298,7 @@ int main(){
                     }
 
                     // Transfert aux autres clients
+
                     /*
                     suppression pour cause de test avec un client IRC
                     strcpy(bufferRetour, usersNick[i]);
@@ -300,13 +309,21 @@ int main(){
 
 
                     for (int r = 0; r < maxClients; r++){
+
                         if ((r != i) && (clientSocket[r] > 0))  {
+
                             write(clientSocket[r],buffer,strlen(buffer));
                         }
                     }
 
+
+
+
                     memset(buffer, 0,sizeof(buffer));
                     memset(buffer, 0,sizeof(bufferRetour));
+
+
+
                 }
 
 
@@ -314,6 +331,9 @@ int main(){
                 //write(sd,bufferRetour,strlen(bufferRetour));
             }
         }
+
+
+
 
     }
 
