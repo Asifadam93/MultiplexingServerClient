@@ -10,7 +10,44 @@
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
 
 #define PORT 8087 //8087 parceque Asif :)
+#define MAX_CLIENTS 20
 
+int maxClients = MAX_CLIENTS,
+    clientSocket[MAX_CLIENTS],
+    masterSocket,
+    newSocket,
+    sd,
+    maxSd,
+    activity,
+    addressLength,
+    nbChar,
+    fdsAdded = 0,
+    usersCount = 0;
+
+char buffer[255];
+char bufferRetour[255];
+
+struct sockaddr_in address;
+fd_set readfds;
+char usersNick[MAX_CLIENTS][20];
+char usersName[MAX_CLIENTS][40];
+
+
+
+void clean(char *str)
+{
+    int i=0;
+    int len = strlen(str)+1;
+
+    for(i=0; i<len; i++)
+    {
+        if (str[i] == '\n')
+        {
+            // Move all the char following the char "c" by one to the left.
+            strncpy(&str[i],&str[i+1],len-i);
+        }
+    }
+}
 
 /**
  * Fonction permettant de récupérer le nickname de la commande : NICK
@@ -34,6 +71,7 @@ int getNick(char* chaine, char* nick) {
         }
         //on set le nick,
         if ((i == 1) && (firstCommandOk == 1)){
+            clean(mot);
             strcpy(nick, mot);
             isNick = 1;
         }
@@ -64,7 +102,6 @@ int getUserName(char* chaine, char* username) {
         }
         //on set le nick,
         if ((i == 1) && (firstCommandOk == 1)){
-            //printf("===%s===", mot);
             strcpy(username, mot);
             isUserName = 1;
         }
@@ -84,36 +121,75 @@ int searchCommandIRC(char* chaine, char* needle)
     int position = c - chaine;
 
     if ((c != NULL) && (position >= 0)) {
-        //printf("\033[0;36mFound command %s\033[0m\n", needle);
+        printf("\033[0;36mFound command %s\033[0m\n", needle);
         return 1;
     }
     return 0;
 }
 
+void welcome(int socket, char* nick) {
+    sprintf((char*) bufferRetour,":localhost 001 %s :Welcome to the Groupe 10 4AMOC1 ESGI 2016-2017 Internet Relay Chat Network %s\r\n", nick, nick);
+    write(socket,bufferRetour,strlen(bufferRetour));
 
+    sprintf((char*) bufferRetour,":localhost 002 %s :Your host is localhost[127.0.0.1/%i], running version 1.0\r\n", nick, PORT );
+    write(socket,bufferRetour,strlen(bufferRetour));
+
+    sprintf((char*) bufferRetour,":localhost 003 %s :This server was created Sat Jan 7 2017 at 12:04:42 EST\r\n", nick);
+    write(socket,bufferRetour,strlen(bufferRetour));
+}
+
+
+void joinWelcome(int socket, char* nick, char* userName)
+{
+    printf("%s",nick);fflush(stdout);
+    printf("%s",userName);fflush(stdout);
+
+    //message de bienvenue du channel étape 1
+    sprintf((char*) bufferRetour,":%s!~%s@localhost JOIN #welcome\r\n", nick, userName);
+    write(socket,bufferRetour,strlen(bufferRetour));
+
+    //message de bienvenue du channel étape 2
+    sprintf((char*) bufferRetour,":localhost 332 %s #welcome :Official Welcome channel\r\n", nick);
+    write(socket,bufferRetour,strlen(bufferRetour));
+
+    //message de listing des utilisateurs
+    sprintf((char*) bufferRetour,":localhost 353 %s = #welcome :cloud ", nick);
+
+    for (int i =0; i<MAX_CLIENTS; i++) {
+        if ((clientSocket[i] != 0)  && (clientSocket[i] != masterSocket)) {
+            strcat(bufferRetour, usersNick[i]);
+            strcat(bufferRetour, " ");
+        }
+    }
+    strcat(bufferRetour, "\r\n");
+    write(socket,bufferRetour,strlen(bufferRetour));
+
+    sprintf((char*) bufferRetour,":localhost 366 %s #welcome :End of /NAMES list\r\n", nick);
+    write(socket,bufferRetour,strlen(bufferRetour));
+
+
+    //envoi aux utilisateurs déjà connectés qu'un nouvel utilisateur est arrivé
+    sprintf((char*) bufferRetour,":%s!%s@locahost JOIN #welcome\r\n", nick, nick);
+
+    printf("%s",bufferRetour);fflush(stdout);
+
+    for (int i =0; i<MAX_CLIENTS; i++) {
+        if ((clientSocket[i] != 0)  && (clientSocket[i] != masterSocket)) {
+            write(socket,bufferRetour,strlen(bufferRetour));
+        }
+    }
+
+
+
+
+
+
+
+}
 
 
 int main(){
 
-	int maxClients = 2,
-        clientSocket[maxClients],
-        masterSocket,
-        newSocket,
-        sd,
-        maxSd,
-        activity,
-        addressLength,
-        nbChar,
-        fdsAdded = 0,
-        usersCount = 0,
-        toWelcome = -1;
-    char buffer[255];
-    char bufferRetour[255];
-
-    struct sockaddr_in address;
-    fd_set readfds;
-    char usersNick[maxClients][20];
-    char usersName[maxClients][100];
 
 
     struct timeval tempo;
@@ -122,7 +198,7 @@ int main(){
 
     // init all client to 0
     for(int i=0; i<maxClients; i++){
-      clientSocket[i] = 0;
+        clientSocket[i] = 0;
     }
 
 
@@ -186,7 +262,7 @@ int main(){
 
 
         // Wait for activity on sockets
-        activity = select(maxSd+1, &readfds, NULL, NULL, &tempo);
+        activity = select(maxSd+1, &readfds, NULL, NULL, NULL);
 
         if(activity < 0){
             perror("\033[1;31mError : \033[1m select \n");
@@ -196,7 +272,7 @@ int main(){
         if(FD_ISSET(masterSocket, &readfds)){
 
             //Accept the connection
-            if((newSocket = accept(masterSocket, (struct sockaddr *)&address, ((socklen_t*)&addressLength))) < 0){
+            if((newSocket = accept(masterSocket, (struct sockaddr *)&address, ((socklen_t*) &addressLength))) < 0){
                 perror("\033[1;31mError : \033[1m accept \n");
             }
 
@@ -217,7 +293,7 @@ int main(){
                     sprintf((char*) usersNick[i], "User_%d", usersCount);
                     sprintf((char*) usersName[i], "User_%d", usersCount);
 
-                     //cast pour éviter un warning.
+                    //cast pour éviter un warning.
 
                     clientSocket[i] = newSocket;
                     break;
@@ -259,54 +335,30 @@ int main(){
 
                         getNick(buffer, nick);
 
-                        //printf("L'utilisateur %s devient : -%s-", usersNick[i], nick);
-
+                        printf("L'utilisateur %s devient : %s\n", usersNick[i], nick);
+                        fflush(stdout);
                         sprintf((char*) usersNick[i],"%s", nick);
 
                     }
-                    //Recherche des commandes IRC
+                        //Recherche des commandes IRC
                     else if (searchCommandIRC(buffer, "USER") == 1) {
                         char userName[100];
                         getUserName(buffer, userName);
 
-                        //printf("L'utilisateur %s- devient : %s", usersNick[i], userName);
-                        sprintf((char*) usersNick[i],"%s", userName);
 
+                        printf("L'username de  %s est %s\n", usersNick[i], userName);
+                        fflush(stdout);
+                        sprintf((char *) usersName[i], "%s", userName);
 
-
-
-
-
-
-                        //test écriture
-
-                        strcpy(bufferRetour, ":localhost 001 fabien :Welcome to the Groupe 10 4AMOC1 ESGI 2016-2017 Internet Relay Chat Network fabien");
-                        write(clientSocket[i],bufferRetour,strlen(bufferRetour));
-
-
-
-
-
-
-
-
-
+                        welcome(clientSocket[i], usersNick[i]);
+                        joinWelcome(clientSocket[i], usersNick[i], usersName[i]);
                     }
-                    //cas non gérés pour le moment
+
+
+                        //cas non gérés pour le moment
                     else {
 
                     }
-
-                    // Transfert aux autres clients
-
-                    /*
-                    suppression pour cause de test avec un client IRC
-                    strcpy(bufferRetour, usersNick[i]);
-                    strcat(bufferRetour, " : ");
-                    strcat(bufferRetour, buffer);
-                    printf("%s", bufferRetour);
-                    */
-
 
                     for (int r = 0; r < maxClients; r++){
 
@@ -326,9 +378,6 @@ int main(){
 
                 }
 
-
-                //strcpy(bufferRetour, "Message bien Recu");
-                //write(sd,bufferRetour,strlen(bufferRetour));
             }
         }
 
