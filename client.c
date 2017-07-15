@@ -5,7 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define PORT 8087
+#define PORT 7777
 
 int main(void)
 {
@@ -31,7 +31,6 @@ int main(void)
  	bzero(&clientAddr, sizeof(clientAddr));
 
  	clientAddr.sin_family = AF_INET;
- 	//clientAddr.sin_addr.s_addr = inet_addr("195.148.124.79");
  	clientAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
  	clientAddr.sin_port = htons(PORT);
 
